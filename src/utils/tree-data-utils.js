@@ -1,3 +1,6 @@
+import clone from 'lodash.clone';
+import assign from 'lodash.assign';
+
 /**
  * Performs a depth-first traversal over all of the node descendants,
  * incrementing currentIndex by 1 for each
@@ -178,7 +181,7 @@ function mapDescendants({
     path = [],
     lowerSiblingCounts = [],
 }) {
-    const nextNode = { ...node };
+    const nextNode = clone(node);
 
     // The pseudo-root is not considered in the path
     const selfPath = isPseudoRoot ? [] : [
@@ -352,7 +355,7 @@ export function map({ treeData, getNodeKey, callback, ignoreCollapsed = true }) 
 export function toggleExpandedForAll({ treeData, expanded = true }) {
     return map({
         treeData,
-        callback: ({ node }) => ({ ...node, expanded }),
+        callback: ({ node }) => (assign(clone(node), {expanded})),
         getNodeKey: ({ treeIndex }) => treeIndex,
         ignoreCollapsed: false,
     });
@@ -402,24 +405,24 @@ export function changeNodeAtPath({ treeData, path, newNode, getNodeKey, ignoreCo
                 if (result) {
                     // If the result was truthy (in this case, an object),
                     //  pass it to the next level of recursion up
-                    return {
-                        ...node,
-                        children: [
-                            ...node.children.slice(0, i),
-                            result,
-                            ...node.children.slice(i + 1),
-                        ],
-                    };
+                    const nodeClone = clone(node);
+                    nodeClone.children = [
+                        ...node.children.slice(0, i),
+                        result,
+                        ...node.children.slice(i + 1),
+                    ];
+
+                    return nodeClone;
                 }
                 // If the result was falsy (returned from the newNode function), then
                 //  delete the node from the array.
-                return {
-                    ...node,
-                    children: [
-                        ...node.children.slice(0, i),
-                        ...node.children.slice(i + 1),
-                    ],
-                };
+                const nodeClone = clone(node);
+                nodeClone.children = [
+                    ...node.children.slice(0, i),
+                    ...node.children.slice(i + 1),
+                ];
+
+                return nodeClone;
             }
 
             nextTreeIndex += 1 + getDescendantCount({ node: node.children[i], ignoreCollapsed });
@@ -537,9 +540,7 @@ export function addNodeUnderParent({
             }
             hasBeenAdded = true;
 
-            const parentNode = {
-                ...node,
-            };
+            const parentNode = clone(node);
 
             if (expandParent) {
                 parentNode.expanded = true;
@@ -565,10 +566,9 @@ export function addNodeUnderParent({
 
             insertedTreeIndex = nextTreeIndex;
 
-            return {
-                ...parentNode,
-                children: [ ...parentNode.children, newNode ],
-            };
+            const nodeClone = clone(parentNode);
+            nodeClone.children = [ ...parentNode.children, newNode ];
+            return nodeClone;
         },
     });
 
@@ -608,19 +608,22 @@ function addNodeAtDepthAndIndex({
             throw new Error('Cannot add to children defined by a function');
         } else {
             const extraNodeProps = expandParent ? { expanded: true } : {};
-            const nextNode = {
-                ...node,
 
+            const nodeClone = clone(node);
+
+            const nextNode = {
                 ...extraNodeProps,
                 children: node.children ? [newNode, ...node.children] : [newNode],
             };
 
+            assign(nodeClone, nextNode);
+
             return {
-                node: nextNode,
+                node: nodeClone,
                 nextIndex: currentIndex + 2,
                 insertedTreeIndex: currentIndex + 1,
-                parentPath: selfPath(nextNode),
-                parentNode: isPseudoRoot ? null : nextNode,
+                parentPath: selfPath(nodeClone),
+                parentNode: isPseudoRoot ? null : nodeClone,
             };
         }
     }
@@ -668,14 +671,12 @@ function addNodeAtDepthAndIndex({
         }
 
         // Insert the newNode at the insertIndex
-        const nextNode = {
-            ...node,
-            children: [
-                ...node.children.slice(0, insertIndex),
-                newNode,
-                ...node.children.slice(insertIndex),
-            ],
-        };
+        const nextNode = clone(node);
+        nextNode.children = [
+            ...node.children.slice(0, insertIndex),
+            newNode,
+            ...node.children.slice(insertIndex),
+        ];
 
         // Return node with successful insert result
         return {
@@ -733,7 +734,8 @@ function addNodeAtDepthAndIndex({
         });
     }
 
-    const nextNode = { ...node, children: newChildren };
+    const nextNode = clone(node);
+    nextNode.children = newChildren;
     const result = {
         node: nextNode,
         nextIndex: childIndex,
@@ -997,7 +999,7 @@ export function find({
         }
 
         let childIndex = currentIndex;
-        const newNode = { ...node };
+        const newNode = clone(node);
         if (hasChildren) {
             // Get all descendants
             newNode.children = newNode.children.map((child) => {
