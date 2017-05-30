@@ -8,6 +8,8 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { AutoSizer, List } from 'react-virtualized';
 import isEqual from 'lodash.isequal';
+import clone from 'lodash.clone';
+import assign from 'lodash.assign';
 import withScrolling, { createVerticalStrength, createHorizontalStrength } from 'react-dnd-scrollzone';
 import 'react-virtualized/styles.css';
 import TreeNode from './tree-node';
@@ -91,7 +93,7 @@ class ReactSortableTree extends Component {
         const treeData = changeNodeAtPath({
             treeData: this.props.treeData,
             path,
-            newNode: ({ node }) => ({ ...node, expanded: !node.expanded }),
+            newNode: ({ node }) => (assign(clone(node), {expanded: !node.expanded})),
             getNodeKey: this.props.getNodeKey,
         });
 
@@ -264,7 +266,7 @@ class ReactSortableTree extends Component {
             draggingTreeData: changeNodeAtPath({
                 treeData: draggingTreeData,
                 path: expandedParentPath.slice(0, -1),
-                newNode: ({ node }) => ({ ...node, expanded: true }),
+                newNode: ({ node }) => (assign(clone(node), {expanded: true})),
                 getNodeKey: this.props.getNodeKey,
             }),
         });
@@ -312,7 +314,7 @@ class ReactSortableTree extends Component {
                             newNode: ({ node: oldNode }) => (
                                 // Only replace the old node if it's the one we set off to find children
                                 //  for in the first place
-                                oldNode === node ? { ...oldNode, children: childrenArray } : oldNode
+                                oldNode === node ? assign(clone(oldNode), {children: childrenArray}) : oldNode
                             ),
                             getNodeKey: this.props.getNodeKey,
                         })),
